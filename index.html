@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markup</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="toolbar">
+
+        <button id="openPdfBtn">Open PDF</button>
+
+        <button id="newBlankBtn">New Blank</button>
+
+        <input type="file" id="pdfFileInput" accept=".pdf" hidden>
+
+        <button id="openProjectBtn">Open Project</button>
+
+        <input type="file" id="projectFileInput" accept=".markup,.json" hidden>
+
+        <button id="saveProjectBtn">Save Project</button>
+
+        <button id="exportPdfBtn">Export PDF</button>
+
+        <input type="text" id="documentTitleInput" class="document-title-input" value="Untitled" aria-label="Document title" disabled>
+
+        <button id="prevBtn">◀</button>
+
+        <span id="pageDisplay">
+            Page 1 / 1
+        </span>
+
+        <button id="nextBtn">▶</button>
+
+        <button id="zoomOutBtn">-</button>
+
+        <span id="zoomDisplay">100%</span>
+
+        <button id="zoomInBtn">+</button>
+
+        <button id="fitPageBtn">Fit Page</button>
+
+        <button id="fitWidthBtn">Fit Width</button>
+
+        <button id="actualSizeBtn">100%</button>
+
+        <div class="toolbar-title">
+            PDF Markup Tool
+        </div>
+
+    </header>
+
+    <main class="viewer-container">
+
+        <aside class="tool-panel">
+            <button id="selectBtn" class="tool-btn">
+                Select
+            </button>
+
+            <button id="rectangleBtn" class="tool-btn">
+                Rectangle
+            </button>
+
+            <button id="textBtn" class="tool-btn">
+                Text
+            </button>
+
+            <button id="calloutBtn" class="tool-btn">
+                Callout
+            </button>
+
+            <button id="deleteBtn" class="tool-btn">
+                Delete
+            </button>
+
+            <div class="properties-panel">
+                <div class="properties-title">
+                    Properties
+                </div>
+
+                <label>
+                    Stroke
+                    <input type="color" id="strokeColorInput" value="#00ff66">
+                </label>
+
+                <label>
+                    Fill
+                    <input type="color" id="fillColorInput" value="#00ff66">
+                </label>
+
+                <label>
+                    Fill Opacity
+                    <input type="range" id="fillOpacityInput" min="0" max="1" step="0.05" value="0.12">
+                </label>
+
+                <label>
+                    Line Width
+                    <input type="number" id="lineWidthInput" min="1" max="12" value="2">
+                </label>
+
+                <label>
+                    Text
+                    <textarea id="textContentInput" rows="4"></textarea>
+                </label>
+
+                <label>
+                    Text Color
+                    <input type="color" id="textColorInput" value="#111111">
+                </label>
+
+                <label>
+                    Font Size
+                    <input type="number" id="fontSizeInput" min="6" max="72" value="16">
+                </label>
+            </div>
+        </aside>
+
+        <div id="viewer">
+
+            <div id="canvasContainer">
+
+                <canvas id="pdfCanvas"></canvas>
+
+                <canvas id="annotationCanvas"></canvas>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer id="statusBar" class="status-bar">
+        Ready
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
+
+    <script src="./js/app.js"></script>
+
+</body>
+
+</html>
