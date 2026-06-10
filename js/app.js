@@ -1813,8 +1813,10 @@ function resizeSelectedRectangularAnnotation() {
 }
 
 annotationCanvas.addEventListener(
-    "mousemove",
+    "pointermove",
     (event) => {
+
+        event.preventDefault();
 
         updatePointerPosition(event);
 
@@ -1944,8 +1946,11 @@ annotationCanvas.addEventListener(
 );
 
 annotationCanvas.addEventListener(
-    "mousedown",
+    "pointerdown",
     (event) => {
+
+        event.preventDefault();
+        annotationCanvas.setPointerCapture(event.pointerId);
 
         updatePointerPosition(event);
 
@@ -2126,8 +2131,16 @@ annotationCanvas.addEventListener(
 );
 
 annotationCanvas.addEventListener(
-    "mouseup",
+    "pointerup",
     (event) => {
+
+        event.preventDefault();
+
+        if (
+            annotationCanvas.hasPointerCapture(event.pointerId)
+        ) {
+            annotationCanvas.releasePointerCapture(event.pointerId);
+        }
 
         updatePointerPosition(event);
 
@@ -2280,7 +2293,7 @@ annotationCanvas.addEventListener(
 );
 
 annotationCanvas.addEventListener(
-    "mouseleave",
+    "pointercancel",
     () => {
 
         isDragging = false;
