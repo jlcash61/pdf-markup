@@ -73,9 +73,65 @@
                 Select
             </button>
 
-            <button id="rectangleBtn" class="tool-btn">
-                Rectangle
-            </button>
+            <div class="tool-group">
+                <button id="shapesBtn" class="tool-btn tool-menu-btn" type="button" aria-expanded="false" aria-controls="shapesMenu">
+                    Shapes
+                </button>
+
+                <div id="shapesMenu" class="tool-menu" hidden>
+                    <button id="rectangleBtn" class="tool-btn" type="button">
+                        Rectangle
+                    </button>
+
+                    <button id="circleBtn" class="tool-btn" type="button">
+                        Circle
+                    </button>
+
+                    <button id="lineBtn" class="tool-btn" type="button">
+                        Line
+                    </button>
+
+                    <button id="cloudBtn" class="tool-btn" type="button">
+                        Cloud
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-group">
+                <button id="symbolsBtn" class="tool-btn tool-menu-btn" type="button" aria-expanded="false" aria-controls="symbolsMenu">
+                    Symbols
+                </button>
+
+                <div id="symbolsMenu" class="tool-menu symbol-library" hidden>
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="smoke">
+                        Smoke
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="heat">
+                        Heat
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="pull">
+                        Pull
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="horn">
+                        Horn
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="iam">
+                        IAM
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="riam">
+                        RIAM
+                    </button>
+
+                    <button class="tool-btn symbol-btn" type="button" data-symbol="vo">
+                        VO
+                    </button>
+                </div>
+            </div>
 
             <button id="textBtn" class="tool-btn">
                 Text
@@ -88,6 +144,23 @@
             <button id="deleteBtn" class="tool-btn">
                 Delete
             </button>
+
+            <div class="tool-options">
+                <label>
+                    <input type="checkbox" id="showGridInput">
+                    Grid
+                </label>
+
+                <label>
+                    <input type="checkbox" id="snapGridInput">
+                    Snap
+                </label>
+
+                <label>
+                    <input type="checkbox" id="autoLineInput">
+                    Auto Line
+                </label>
+            </div>
 
             <div class="properties-panel">
                 <div class="properties-title">
@@ -127,6 +200,21 @@
                 <label>
                     Font Size
                     <input type="number" id="fontSizeInput" min="6" max="72" value="16">
+                </label>
+
+                <label>
+                    Symbol Label
+                    <input type="text" id="symbolLabelInput">
+                </label>
+
+                <label>
+                    Address
+                    <input type="text" id="symbolAddressInput">
+                </label>
+
+                <label>
+                    Rotation
+                    <input type="number" id="rotationInput" min="0" max="359" value="0">
                 </label>
             </div>
         </aside>

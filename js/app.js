@@ -43,7 +43,15 @@ const fitWidthBtn = document.getElementById("fitWidthBtn");
 const actualSizeBtn = document.getElementById("actualSizeBtn");
 
 const selectBtn = document.getElementById("selectBtn");
+const shapesBtn = document.getElementById("shapesBtn");
+const shapesMenu = document.getElementById("shapesMenu");
 const rectangleBtn = document.getElementById("rectangleBtn");
+const circleBtn = document.getElementById("circleBtn");
+const lineBtn = document.getElementById("lineBtn");
+const cloudBtn = document.getElementById("cloudBtn");
+const symbolsBtn = document.getElementById("symbolsBtn");
+const symbolsMenu = document.getElementById("symbolsMenu");
+const symbolButtons = document.querySelectorAll(".symbol-btn");
 const textBtn = document.getElementById("textBtn");
 const calloutBtn = document.getElementById("calloutBtn");
 const deleteBtn = document.getElementById("deleteBtn");
@@ -55,6 +63,12 @@ const lineWidthInput = document.getElementById("lineWidthInput");
 const textContentInput = document.getElementById("textContentInput");
 const textColorInput = document.getElementById("textColorInput");
 const fontSizeInput = document.getElementById("fontSizeInput");
+const showGridInput = document.getElementById("showGridInput");
+const snapGridInput = document.getElementById("snapGridInput");
+const autoLineInput = document.getElementById("autoLineInput");
+const symbolLabelInput = document.getElementById("symbolLabelInput");
+const symbolAddressInput = document.getElementById("symbolAddressInput");
+const rotationInput = document.getElementById("rotationInput");
 
 const viewer = document.getElementById("viewer");
 const canvasContainer = document.getElementById("canvasContainer");
@@ -96,6 +110,14 @@ let currentLineWidth = 2;
 let currentTextColor = "#111111";
 let currentFontSize = 16;
 let currentTextContent = "Text";
+let currentSymbolLabel = "";
+let currentSymbolAddress = "";
+let currentRotation = 0;
+
+let showGrid = false;
+let snapToGrid = false;
+let autoLineMode = false;
+let lastAutoLineSymbol = null;
 
 let annotations = [];
 let selectedAnnotation = null;
@@ -120,6 +142,18 @@ let isDrawingRectangle = false;
 let rectangleStartPdfX = 0;
 let rectangleStartPdfY = 0;
 
+let isDrawingCircle = false;
+let circleStartPdfX = 0;
+let circleStartPdfY = 0;
+
+let isDrawingLine = false;
+let lineStartPdfX = 0;
+let lineStartPdfY = 0;
+
+let isDrawingCloud = false;
+let cloudStartPdfX = 0;
+let cloudStartPdfY = 0;
+
 let isDrawingTextBox = false;
 let textStartPdfX = 0;
 let textStartPdfY = 0;
@@ -134,6 +168,45 @@ const blankPageWidth = 816;
 const blankPageHeight = 1056;
 const defaultCalloutWidth = 180;
 const defaultCalloutHeight = 70;
+const defaultSymbolSize = 42;
+const gridSize = 24;
+const symbolLibrary = {
+    smoke: {
+        label: "Smoke",
+        text: "SD",
+        shape: "circle"
+    },
+    heat: {
+        label: "Heat",
+        text: "HD",
+        shape: "circle"
+    },
+    pull: {
+        label: "Pull",
+        text: "P",
+        shape: "square"
+    },
+    horn: {
+        label: "Horn",
+        text: "H",
+        shape: "square"
+    },
+    iam: {
+        label: "IAM",
+        text: "IAM",
+        shape: "square"
+    },
+    riam: {
+        label: "RIAM",
+        text: "RIAM",
+        shape: "square"
+    },
+    vo: {
+        label: "VO",
+        text: "VO",
+        shape: "triangle"
+    }
+};
 
 /* **************************************************
    STARTUP
@@ -174,6 +247,9 @@ function initializeUi() {
     textContentInput.disabled = true;
     textColorInput.disabled = true;
     fontSizeInput.disabled = true;
+    symbolLabelInput.disabled = true;
+    symbolAddressInput.disabled = true;
+    rotationInput.disabled = true;
 }
 
 function enablePdfControls() {
@@ -293,6 +369,7 @@ newBlankBtn.addEventListener("click", async () => {
 
     annotations = [];
     selectedAnnotation = null;
+    lastAutoLineSymbol = null;
 
     enablePdfControls();
     updatePropertiesPanel();
@@ -320,6 +397,7 @@ fileInput.addEventListener("change", async (event) => {
 
     annotations = [];
     selectedAnnotation = null;
+    lastAutoLineSymbol = null;
 
     statusBar.textContent =
         `Loading ${file.name}`;
@@ -377,7 +455,13 @@ function createProjectData() {
             currentLineWidth,
             currentTextColor,
             currentFontSize,
-            currentTextContent
+            currentTextContent,
+            currentSymbolLabel,
+            currentSymbolAddress,
+            currentRotation,
+            showGrid,
+            snapToGrid,
+            autoLineMode
         },
         annotations
     };
@@ -409,6 +493,33 @@ function restoreDefaults(defaults) {
 
     currentTextContent =
         defaults.currentTextContent || currentTextContent;
+
+    currentSymbolLabel =
+        defaults.currentSymbolLabel ?? currentSymbolLabel;
+
+    currentSymbolAddress =
+        defaults.currentSymbolAddress ?? currentSymbolAddress;
+
+    currentRotation =
+        defaults.currentRotation ?? currentRotation;
+
+    showGrid =
+        defaults.showGrid ?? showGrid;
+
+    snapToGrid =
+        defaults.snapToGrid ?? snapToGrid;
+
+    autoLineMode =
+        defaults.autoLineMode ?? autoLineMode;
+
+    showGridInput.checked =
+        showGrid;
+
+    snapGridInput.checked =
+        snapToGrid;
+
+    autoLineInput.checked =
+        autoLineMode;
 }
 
 saveProjectBtn.addEventListener("click", () => {
@@ -487,6 +598,7 @@ projectFileInput.addEventListener("change", async (event) => {
         projectData.annotations || [];
 
     selectedAnnotation = null;
+    lastAutoLineSymbol = null;
 
     restoreDefaults(projectData.defaults);
 
@@ -717,7 +829,13 @@ nextBtn.addEventListener("click", async () => {
 function updateToolButtons() {
 
     selectBtn.classList.remove("active");
+    shapesBtn.classList.remove("active");
     rectangleBtn.classList.remove("active");
+    circleBtn.classList.remove("active");
+    lineBtn.classList.remove("active");
+    cloudBtn.classList.remove("active");
+    symbolsBtn.classList.remove("active");
+    symbolButtons.forEach(button => button.classList.remove("active"));
     textBtn.classList.remove("active");
     calloutBtn.classList.remove("active");
     deleteBtn.classList.remove("active");
@@ -727,7 +845,38 @@ function updateToolButtons() {
     }
 
     else if (activeTool === "rectangle") {
+        shapesBtn.classList.add("active");
         rectangleBtn.classList.add("active");
+    }
+
+    else if (activeTool === "circle") {
+        shapesBtn.classList.add("active");
+        circleBtn.classList.add("active");
+    }
+
+    else if (activeTool === "line") {
+        shapesBtn.classList.add("active");
+        lineBtn.classList.add("active");
+    }
+
+    else if (activeTool === "cloud") {
+        shapesBtn.classList.add("active");
+        cloudBtn.classList.add("active");
+    }
+
+    else if (activeTool.startsWith("symbol:")) {
+        const symbolName =
+            activeTool.replace("symbol:", "");
+
+        symbolsBtn.classList.add("active");
+
+        symbolButtons.forEach(button => {
+            if (
+                button.dataset.symbol === symbolName
+            ) {
+                button.classList.add("active");
+            }
+        });
     }
 
     else if (activeTool === "text") {
@@ -743,6 +892,28 @@ function updateToolButtons() {
     }
 }
 
+function toggleToolMenu(button, menu) {
+
+    const isOpen =
+        !menu.hidden;
+
+    menu.hidden =
+        isOpen;
+
+    button.setAttribute(
+        "aria-expanded",
+        String(!isOpen)
+    );
+}
+
+shapesBtn.addEventListener("click", () => {
+    toggleToolMenu(shapesBtn, shapesMenu);
+});
+
+symbolsBtn.addEventListener("click", () => {
+    toggleToolMenu(symbolsBtn, symbolsMenu);
+});
+
 selectBtn.addEventListener("click", () => {
 
     activeTool = "select";
@@ -755,6 +926,37 @@ rectangleBtn.addEventListener("click", () => {
     activeTool = "rectangle";
 
     updateToolButtons();
+});
+
+circleBtn.addEventListener("click", () => {
+
+    activeTool = "circle";
+
+    updateToolButtons();
+});
+
+lineBtn.addEventListener("click", () => {
+
+    activeTool = "line";
+
+    updateToolButtons();
+});
+
+cloudBtn.addEventListener("click", () => {
+
+    activeTool = "cloud";
+
+    updateToolButtons();
+});
+
+symbolButtons.forEach(button => {
+    button.addEventListener("click", () => {
+
+        activeTool =
+            `symbol:${button.dataset.symbol}`;
+
+        updateToolButtons();
+    });
 });
 
 textBtn.addEventListener("click", () => {
@@ -799,6 +1001,9 @@ function updatePropertiesPanel() {
         textContentInput.disabled = true;
         textColorInput.disabled = true;
         fontSizeInput.disabled = true;
+        symbolLabelInput.disabled = true;
+        symbolAddressInput.disabled = true;
+        rotationInput.disabled = true;
 
         return;
     }
@@ -807,6 +1012,10 @@ function updatePropertiesPanel() {
         selectedAnnotation &&
         (
             selectedAnnotation.type === "rectangle" ||
+            selectedAnnotation.type === "circle" ||
+            selectedAnnotation.type === "line" ||
+            selectedAnnotation.type === "cloud" ||
+            selectedAnnotation.type === "symbol" ||
             selectedAnnotation.type === "text" ||
             selectedAnnotation.type === "callout"
         );
@@ -818,6 +1027,10 @@ function updatePropertiesPanel() {
             selectedAnnotation.type === "callout"
         );
 
+    const hasSymbolSelection =
+        selectedAnnotation &&
+        selectedAnnotation.type === "symbol";
+
     strokeColorInput.disabled = false;
     fillColorInput.disabled = false;
     fillOpacityInput.disabled = false;
@@ -825,6 +1038,9 @@ function updatePropertiesPanel() {
     textContentInput.disabled = !hasTextSelection;
     textColorInput.disabled = !hasTextSelection;
     fontSizeInput.disabled = !hasTextSelection;
+    symbolLabelInput.disabled = !hasSymbolSelection;
+    symbolAddressInput.disabled = !hasSymbolSelection;
+    rotationInput.disabled = !hasSymbolSelection;
 
     if (
         hasSelection
@@ -862,6 +1078,30 @@ function updatePropertiesPanel() {
                 currentFontSize;
         }
 
+        if (
+            hasSymbolSelection
+        ) {
+            symbolLabelInput.value =
+                selectedAnnotation.label || "";
+
+            symbolAddressInput.value =
+                selectedAnnotation.address || "";
+
+            rotationInput.value =
+                selectedAnnotation.rotation || 0;
+        }
+
+        else {
+            symbolLabelInput.value =
+                currentSymbolLabel;
+
+            symbolAddressInput.value =
+                currentSymbolAddress;
+
+            rotationInput.value =
+                currentRotation;
+        }
+
         return;
     }
 
@@ -885,6 +1125,15 @@ function updatePropertiesPanel() {
 
     fontSizeInput.value =
         currentFontSize;
+
+    symbolLabelInput.value =
+        currentSymbolLabel;
+
+    symbolAddressInput.value =
+        currentSymbolAddress;
+
+    rotationInput.value =
+        currentRotation;
 }
 
 function applyPropertiesToSelection() {
@@ -910,10 +1159,23 @@ function applyPropertiesToSelection() {
     currentFontSize =
         Number(fontSizeInput.value);
 
+    currentSymbolLabel =
+        symbolLabelInput.value;
+
+    currentSymbolAddress =
+        symbolAddressInput.value;
+
+    currentRotation =
+        Number(rotationInput.value) || 0;
+
     if (
         selectedAnnotation &&
         (
             selectedAnnotation.type === "rectangle" ||
+            selectedAnnotation.type === "circle" ||
+            selectedAnnotation.type === "line" ||
+            selectedAnnotation.type === "cloud" ||
+            selectedAnnotation.type === "symbol" ||
             selectedAnnotation.type === "text" ||
             selectedAnnotation.type === "callout"
         )
@@ -944,6 +1206,19 @@ function applyPropertiesToSelection() {
                 currentFontSize;
         }
 
+        if (
+            selectedAnnotation.type === "symbol"
+        ) {
+            selectedAnnotation.label =
+                currentSymbolLabel;
+
+            selectedAnnotation.address =
+                currentSymbolAddress;
+
+            selectedAnnotation.rotation =
+                currentRotation;
+        }
+
         drawAnnotations();
     }
 }
@@ -955,6 +1230,23 @@ lineWidthInput.addEventListener("input", applyPropertiesToSelection);
 textContentInput.addEventListener("input", applyPropertiesToSelection);
 textColorInput.addEventListener("input", applyPropertiesToSelection);
 fontSizeInput.addEventListener("input", applyPropertiesToSelection);
+symbolLabelInput.addEventListener("input", applyPropertiesToSelection);
+symbolAddressInput.addEventListener("input", applyPropertiesToSelection);
+rotationInput.addEventListener("input", applyPropertiesToSelection);
+
+showGridInput.addEventListener("change", () => {
+    showGrid = showGridInput.checked;
+    drawAnnotations();
+});
+
+snapGridInput.addEventListener("change", () => {
+    snapToGrid = snapGridInput.checked;
+});
+
+autoLineInput.addEventListener("change", () => {
+    autoLineMode = autoLineInput.checked;
+    lastAutoLineSymbol = null;
+});
 
 /* **************************************************
    ZOOM
@@ -1133,6 +1425,64 @@ function normalizeRectangle(x1, y1, x2, y2) {
     };
 }
 
+function snapValue(value) {
+
+    if (
+        !snapToGrid
+    ) {
+        return value;
+    }
+
+    return Math.round(value / gridSize) * gridSize;
+}
+
+function getAnnotationCenter(annotation) {
+
+    return {
+        x: annotation.x + annotation.width / 2,
+        y: annotation.y + annotation.height / 2
+    };
+}
+
+function getAnnotationEdgePointToward(annotation, targetAnnotation) {
+
+    const center =
+        getAnnotationCenter(annotation);
+
+    const targetCenter =
+        getAnnotationCenter(targetAnnotation);
+
+    const dx =
+        targetCenter.x - center.x;
+
+    const dy =
+        targetCenter.y - center.y;
+
+    if (
+        dx === 0 &&
+        dy === 0
+    ) {
+        return center;
+    }
+
+    const halfWidth =
+        annotation.width / 2;
+
+    const halfHeight =
+        annotation.height / 2;
+
+    const scaleToEdge =
+        Math.min(
+            Math.abs(halfWidth / dx) || Infinity,
+            Math.abs(halfHeight / dy) || Infinity
+        );
+
+    return {
+        x: center.x + dx * scaleToEdge,
+        y: center.y + dy * scaleToEdge
+    };
+}
+
 function getRectangleHandles(annotation) {
 
     return [
@@ -1167,6 +1517,45 @@ function getRectangleHandles(annotation) {
     ];
 }
 
+function isRectangularAnnotation(annotation) {
+
+    return (
+        annotation.type === "rectangle" ||
+        annotation.type === "circle" ||
+        annotation.type === "cloud" ||
+        annotation.type === "text" ||
+        annotation.type === "callout" ||
+        annotation.type === "symbol"
+    );
+}
+
+function isLineAnnotation(annotation) {
+
+    return (
+        annotation.type === "line"
+    );
+}
+
+function getLineHandles(annotation) {
+
+    return [
+        {
+            name: "start",
+            x: annotation.x1,
+            y: annotation.y1,
+            anchorX: annotation.x2,
+            anchorY: annotation.y2
+        },
+        {
+            name: "end",
+            x: annotation.x2,
+            y: annotation.y2,
+            anchorX: annotation.x1,
+            anchorY: annotation.y1
+        }
+    ];
+}
+
 function hitTestResizeHandle(annotation, pdfX, pdfY) {
 
     if (
@@ -1177,6 +1566,28 @@ function hitTestResizeHandle(annotation, pdfX, pdfY) {
 
     const handleRadius =
         8 / scale;
+
+    if (
+        isLineAnnotation(annotation)
+    ) {
+        const handles =
+            getLineHandles(annotation);
+
+        for (let i = 0; i < handles.length; i++) {
+
+            const handle =
+                handles[i];
+
+            if (
+                Math.abs(pdfX - handle.x) <= handleRadius &&
+                Math.abs(pdfY - handle.y) <= handleRadius
+            ) {
+                return handle;
+            }
+        }
+
+        return null;
+    }
 
     const handles =
         getRectangleHandles(annotation);
@@ -1216,6 +1627,52 @@ function hitTestLeaderHandle(annotation, pdfX, pdfY) {
     );
 }
 
+function pointToSegmentDistance(pointX, pointY, lineX1, lineY1, lineX2, lineY2) {
+
+    const dx =
+        lineX2 - lineX1;
+
+    const dy =
+        lineY2 - lineY1;
+
+    if (
+        dx === 0 &&
+        dy === 0
+    ) {
+        return Math.hypot(
+            pointX - lineX1,
+            pointY - lineY1
+        );
+    }
+
+    const t =
+        Math.max(
+            0,
+            Math.min(
+                1,
+                (
+                    (pointX - lineX1) * dx +
+                    (pointY - lineY1) * dy
+                ) /
+                (
+                    dx * dx +
+                    dy * dy
+                )
+            )
+        );
+
+    const projectedX =
+        lineX1 + t * dx;
+
+    const projectedY =
+        lineY1 + t * dy;
+
+    return Math.hypot(
+        pointX - projectedX,
+        pointY - projectedY
+    );
+}
+
 function hitTestAnnotation(pdfX, pdfY) {
 
     for (let i = annotations.length - 1; i >= 0; i--) {
@@ -1230,15 +1687,25 @@ function hitTestAnnotation(pdfX, pdfY) {
         }
 
         if (
-            (
-                annotation.type === "rectangle" ||
-                annotation.type === "text" ||
-                annotation.type === "callout"
-            ) &&
+            isRectangularAnnotation(annotation) &&
             pdfX >= annotation.x &&
             pdfX <= annotation.x + annotation.width &&
             pdfY >= annotation.y &&
             pdfY <= annotation.y + annotation.height
+        ) {
+            return annotation;
+        }
+
+        if (
+            isLineAnnotation(annotation) &&
+            pointToSegmentDistance(
+                pdfX,
+                pdfY,
+                annotation.x1,
+                annotation.y1,
+                annotation.x2,
+                annotation.y2
+            ) <= getLineHitTolerance(annotation)
         ) {
             return annotation;
         }
@@ -1276,6 +1743,39 @@ function drawRectangleHandles(annotation) {
 
     const handleSize = 8;
     const handles = getRectangleHandles(annotation);
+
+    annotationCtx.fillStyle = "#ffffff";
+    annotationCtx.strokeStyle = "#111111";
+    annotationCtx.lineWidth = 1;
+
+    handles.forEach(handle => {
+
+        const screenX =
+            handle.x * scale;
+
+        const screenY =
+            handle.y * scale;
+
+        annotationCtx.fillRect(
+            screenX - handleSize / 2,
+            screenY - handleSize / 2,
+            handleSize,
+            handleSize
+        );
+
+        annotationCtx.strokeRect(
+            screenX - handleSize / 2,
+            screenY - handleSize / 2,
+            handleSize,
+            handleSize
+        );
+    });
+}
+
+function drawLineHandles(annotation) {
+
+    const handleSize = 8;
+    const handles = getLineHandles(annotation);
 
     annotationCtx.fillStyle = "#ffffff";
     annotationCtx.strokeStyle = "#111111";
@@ -1349,6 +1849,404 @@ function drawRectangleAnnotation(annotation) {
         annotation === selectedAnnotation
     ) {
 
+        annotationCtx.strokeStyle =
+            "yellow";
+
+        annotationCtx.lineWidth = 2;
+
+        annotationCtx.strokeRect(
+            screenX - 3,
+            screenY - 3,
+            screenWidth + 6,
+            screenHeight + 6
+        );
+
+        drawRectangleHandles(annotation);
+    }
+}
+
+function drawCircleAnnotation(annotation) {
+
+    const screenX =
+        annotation.x * scale;
+
+    const screenY =
+        annotation.y * scale;
+
+    const screenWidth =
+        annotation.width * scale;
+
+    const screenHeight =
+        annotation.height * scale;
+
+    annotationCtx.fillStyle =
+        colorToRgba(
+            annotation.fillColor,
+            annotation.fillOpacity
+        );
+
+    annotationCtx.strokeStyle =
+        annotation.strokeColor;
+
+    annotationCtx.lineWidth =
+        annotation.lineWidth;
+
+    annotationCtx.beginPath();
+
+    annotationCtx.ellipse(
+        screenX + screenWidth / 2,
+        screenY + screenHeight / 2,
+        Math.abs(screenWidth / 2),
+        Math.abs(screenHeight / 2),
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    annotationCtx.fill();
+    annotationCtx.stroke();
+
+    if (
+        annotation === selectedAnnotation
+    ) {
+
+        annotationCtx.strokeStyle =
+            "yellow";
+
+        annotationCtx.lineWidth = 2;
+
+        annotationCtx.strokeRect(
+            screenX - 3,
+            screenY - 3,
+            screenWidth + 6,
+            screenHeight + 6
+        );
+
+        drawRectangleHandles(annotation);
+    }
+}
+
+function drawLineAnnotation(annotation) {
+
+    const screenX1 =
+        annotation.x1 * scale;
+
+    const screenY1 =
+        annotation.y1 * scale;
+
+    const screenX2 =
+        annotation.x2 * scale;
+
+    const screenY2 =
+        annotation.y2 * scale;
+
+    annotationCtx.strokeStyle =
+        annotation.strokeColor;
+
+    annotationCtx.lineWidth =
+        annotation.lineWidth;
+
+    annotationCtx.beginPath();
+
+    annotationCtx.moveTo(
+        screenX1,
+        screenY1
+    );
+
+    annotationCtx.lineTo(
+        screenX2,
+        screenY2
+    );
+
+    annotationCtx.stroke();
+
+    if (
+        annotation === selectedAnnotation
+    ) {
+        annotationCtx.strokeStyle =
+            "yellow";
+
+        annotationCtx.lineWidth = 2;
+
+        annotationCtx.stroke();
+
+        drawLineHandles(annotation);
+    }
+}
+
+function drawCloudAnnotation(annotation) {
+
+    const screenX =
+        annotation.x * scale;
+
+    const screenY =
+        annotation.y * scale;
+
+    const screenWidth =
+        annotation.width * scale;
+
+    const screenHeight =
+        annotation.height * scale;
+
+    const radius =
+        Math.max(
+            8,
+            Math.min(screenWidth, screenHeight) / 6
+        );
+
+    const centerYTop =
+        screenY + radius;
+
+    const centerYBottom =
+        screenY + screenHeight - radius;
+
+    annotationCtx.fillStyle =
+        colorToRgba(
+            annotation.fillColor,
+            annotation.fillOpacity
+        );
+
+    annotationCtx.strokeStyle =
+        annotation.strokeColor;
+
+    annotationCtx.lineWidth =
+        annotation.lineWidth;
+
+    annotationCtx.beginPath();
+
+    annotationCtx.moveTo(
+        screenX + radius,
+        screenY
+    );
+
+    for (let x = screenX + radius; x < screenX + screenWidth - radius; x += radius * 1.35) {
+        annotationCtx.arc(
+            x,
+            centerYTop,
+            radius,
+            Math.PI * 1.25,
+            Math.PI * 1.75
+        );
+    }
+
+    for (let y = screenY + radius; y < screenY + screenHeight - radius; y += radius * 1.35) {
+        annotationCtx.arc(
+            screenX + screenWidth - radius,
+            y,
+            radius,
+            Math.PI * 1.75,
+            Math.PI * 0.25
+        );
+    }
+
+    for (let x = screenX + screenWidth - radius; x > screenX + radius; x -= radius * 1.35) {
+        annotationCtx.arc(
+            x,
+            centerYBottom,
+            radius,
+            Math.PI * 0.25,
+            Math.PI * 0.75
+        );
+    }
+
+    for (let y = screenY + screenHeight - radius; y > screenY + radius; y -= radius * 1.35) {
+        annotationCtx.arc(
+            screenX + radius,
+            y,
+            radius,
+            Math.PI * 0.75,
+            Math.PI * 1.25
+        );
+    }
+
+    annotationCtx.closePath();
+    annotationCtx.fill();
+    annotationCtx.stroke();
+
+    if (
+        annotation === selectedAnnotation
+    ) {
+        annotationCtx.strokeStyle =
+            "yellow";
+
+        annotationCtx.lineWidth = 2;
+
+        annotationCtx.strokeRect(
+            screenX - 3,
+            screenY - 3,
+            screenWidth + 6,
+            screenHeight + 6
+        );
+
+        drawRectangleHandles(annotation);
+    }
+}
+
+function drawSymbolAnnotation(annotation) {
+
+    const screenX =
+        annotation.x * scale;
+
+    const screenY =
+        annotation.y * scale;
+
+    const screenWidth =
+        annotation.width * scale;
+
+    const screenHeight =
+        annotation.height * scale;
+
+    const symbol =
+        symbolLibrary[annotation.symbol] || {
+            text: "?",
+            shape: "circle"
+        };
+
+    const centerX =
+        screenX + screenWidth / 2;
+
+    const centerY =
+        screenY + screenHeight / 2;
+
+    const rotation =
+        ((annotation.rotation || 0) * Math.PI) / 180;
+
+    annotationCtx.save();
+    annotationCtx.translate(centerX, centerY);
+    annotationCtx.rotate(rotation);
+
+    annotationCtx.fillStyle =
+        colorToRgba(
+            annotation.fillColor,
+            annotation.fillOpacity
+        );
+
+    annotationCtx.strokeStyle =
+        annotation.strokeColor;
+
+    annotationCtx.lineWidth =
+        annotation.lineWidth;
+
+    annotationCtx.beginPath();
+
+    if (
+        symbol.shape === "square"
+    ) {
+        annotationCtx.rect(
+            -screenWidth / 2,
+            -screenHeight / 2,
+            screenWidth,
+            screenHeight
+        );
+    }
+
+    else if (
+        symbol.shape === "triangle"
+    ) {
+        annotationCtx.moveTo(
+            0,
+            -screenHeight / 2
+        );
+
+        annotationCtx.lineTo(
+            screenWidth / 2,
+            screenHeight / 2
+        );
+
+        annotationCtx.lineTo(
+            -screenWidth / 2,
+            screenHeight / 2
+        );
+
+        annotationCtx.closePath();
+    }
+
+    else {
+        annotationCtx.arc(
+            0,
+            0,
+            Math.min(screenWidth, screenHeight) / 2,
+            0,
+            Math.PI * 2
+        );
+    }
+
+    annotationCtx.fill();
+    annotationCtx.stroke();
+
+    annotationCtx.fillStyle =
+        annotation.textColor;
+
+    let symbolFontSize =
+        Math.max(10, annotation.fontSize * scale);
+
+    annotationCtx.font =
+        `bold ${symbolFontSize}px Arial`;
+
+    while (
+        annotationCtx.measureText(symbol.text).width > screenWidth * 0.82 &&
+        symbolFontSize > 8
+    ) {
+        symbolFontSize -= 1;
+
+        annotationCtx.font =
+            `bold ${symbolFontSize}px Arial`;
+    }
+
+    annotationCtx.textAlign =
+        "center";
+
+    annotationCtx.textBaseline =
+        "middle";
+
+    annotationCtx.fillText(
+        symbol.text,
+        0,
+        0
+    );
+
+    annotationCtx.restore();
+
+    if (
+        annotation.label ||
+        annotation.address
+    ) {
+        const labelLines =
+            [
+                annotation.label,
+                annotation.address
+            ].filter(Boolean);
+
+        annotationCtx.fillStyle =
+            annotation.textColor;
+
+        annotationCtx.font =
+            `${Math.max(10, 11 * scale)}px Arial`;
+
+        annotationCtx.textAlign =
+            "center";
+
+        annotationCtx.textBaseline =
+            "top";
+
+        labelLines.forEach((line, index) => {
+            annotationCtx.fillText(
+                line,
+                centerX,
+                screenY + screenHeight + (index * 13 * scale) + 4
+            );
+        });
+    }
+
+    annotationCtx.textAlign =
+        "start";
+
+    annotationCtx.textBaseline =
+        "alphabetic";
+
+    if (
+        annotation === selectedAnnotation
+    ) {
         annotationCtx.strokeStyle =
             "yellow";
 
@@ -1595,6 +2493,38 @@ function drawCalloutAnnotation(annotation) {
     drawTextAnnotation(annotation);
 }
 
+function drawGrid() {
+
+    if (
+        !showGrid
+    ) {
+        return;
+    }
+
+    const spacing =
+        gridSize * scale;
+
+    annotationCtx.save();
+    annotationCtx.strokeStyle = "rgba(80, 160, 255, 0.22)";
+    annotationCtx.lineWidth = 1;
+
+    for (let x = 0; x <= annotationCanvas.width; x += spacing) {
+        annotationCtx.beginPath();
+        annotationCtx.moveTo(x, 0);
+        annotationCtx.lineTo(x, annotationCanvas.height);
+        annotationCtx.stroke();
+    }
+
+    for (let y = 0; y <= annotationCanvas.height; y += spacing) {
+        annotationCtx.beginPath();
+        annotationCtx.moveTo(0, y);
+        annotationCtx.lineTo(annotationCanvas.width, y);
+        annotationCtx.stroke();
+    }
+
+    annotationCtx.restore();
+}
+
 function drawAnnotations() {
 
     annotationCtx.clearRect(
@@ -1603,6 +2533,8 @@ function drawAnnotations() {
         annotationCanvas.width,
         annotationCanvas.height
     );
+
+    drawGrid();
 
     /* Stored annotations */
 
@@ -1618,6 +2550,30 @@ function drawAnnotations() {
             annotation.type === "rectangle"
         ) {
             drawRectangleAnnotation(annotation);
+        }
+
+        else if (
+            annotation.type === "circle"
+        ) {
+            drawCircleAnnotation(annotation);
+        }
+
+        else if (
+            annotation.type === "line"
+        ) {
+            drawLineAnnotation(annotation);
+        }
+
+        else if (
+            annotation.type === "cloud"
+        ) {
+            drawCloudAnnotation(annotation);
+        }
+
+        else if (
+            annotation.type === "symbol"
+        ) {
+            drawSymbolAnnotation(annotation);
         }
 
         else if (
@@ -1640,6 +2596,30 @@ function drawAnnotations() {
             previewAnnotation.type === "callout"
         ) {
             drawCalloutAnnotation(previewAnnotation);
+        }
+
+        else if (
+            previewAnnotation.type === "circle"
+        ) {
+            drawCircleAnnotation(previewAnnotation);
+        }
+
+        else if (
+            previewAnnotation.type === "line"
+        ) {
+            drawLineAnnotation(previewAnnotation);
+        }
+
+        else if (
+            previewAnnotation.type === "cloud"
+        ) {
+            drawCloudAnnotation(previewAnnotation);
+        }
+
+        else if (
+            previewAnnotation.type === "symbol"
+        ) {
+            drawSymbolAnnotation(previewAnnotation);
         }
 
         else if (
@@ -1710,10 +2690,14 @@ function updatePointerPosition(event) {
         event.clientY - rect.top;
 
     pdfX =
-        Math.round(mouseX / scale);
+        snapValue(
+            Math.round(mouseX / scale)
+        );
 
     pdfY =
-        Math.round(mouseY / scale);
+        snapValue(
+            Math.round(mouseY / scale)
+        );
 }
 
 function createRectangleAnnotation(x, y, width, height) {
@@ -1729,6 +2713,111 @@ function createRectangleAnnotation(x, y, width, height) {
         fillColor: currentFillColor,
         fillOpacity: currentFillOpacity,
         lineWidth: currentLineWidth
+    };
+}
+
+function createCircleAnnotation(x, y, width, height) {
+
+    return {
+        type: "circle",
+        page: currentPage,
+        x,
+        y,
+        width,
+        height,
+        strokeColor: currentStrokeColor,
+        fillColor: currentFillColor,
+        fillOpacity: currentFillOpacity,
+        lineWidth: currentLineWidth
+    };
+}
+
+function createLineAnnotation(x1, y1, x2, y2) {
+
+    return {
+        type: "line",
+        page: currentPage,
+        x1,
+        y1,
+        x2,
+        y2,
+        strokeColor: currentStrokeColor,
+        fillColor: currentFillColor,
+        fillOpacity: 0,
+        lineWidth: currentLineWidth
+    };
+}
+
+function createLineBetweenSymbols(firstSymbol, secondSymbol) {
+
+    const firstPoint =
+        getAnnotationEdgePointToward(
+            firstSymbol,
+            secondSymbol
+        );
+
+    const secondPoint =
+        getAnnotationEdgePointToward(
+            secondSymbol,
+            firstSymbol
+        );
+
+    const line =
+        createLineAnnotation(
+            firstPoint.x,
+            firstPoint.y,
+            secondPoint.x,
+            secondPoint.y
+        );
+
+    line.autoLine = true;
+
+    return line;
+}
+
+function getLineHitTolerance(annotation) {
+
+    return Math.max(
+        10 / scale,
+        (annotation.lineWidth || 1) + 6 / scale
+    );
+}
+
+function createCloudAnnotation(x, y, width, height) {
+
+    return {
+        type: "cloud",
+        page: currentPage,
+        x,
+        y,
+        width,
+        height,
+        strokeColor: currentStrokeColor,
+        fillColor: currentFillColor,
+        fillOpacity: currentFillOpacity,
+        lineWidth: currentLineWidth
+    };
+}
+
+function createSymbolAnnotation(symbol, x, y) {
+
+    return {
+        type: "symbol",
+        page: currentPage,
+        symbol,
+        x: x - defaultSymbolSize / 2,
+        y: y - defaultSymbolSize / 2,
+        width: defaultSymbolSize,
+        height: defaultSymbolSize,
+        strokeColor: currentStrokeColor,
+        fillColor: "#ffffff",
+        fillOpacity: 0.92,
+        lineWidth: currentLineWidth,
+        textColor: currentTextColor,
+        fontSize: 16,
+        label: currentSymbolLabel,
+        address: currentSymbolAddress,
+        rotation: currentRotation
     };
 }
 
@@ -1777,9 +2866,7 @@ function resizeSelectedRectangularAnnotation() {
     if (
         !selectedAnnotation ||
         (
-            selectedAnnotation.type !== "rectangle" &&
-            selectedAnnotation.type !== "text" &&
-            selectedAnnotation.type !== "callout"
+            !isRectangularAnnotation(selectedAnnotation)
         )
     ) {
         return;
@@ -1812,6 +2899,30 @@ function resizeSelectedRectangularAnnotation() {
         rectangle.height;
 }
 
+function resizeSelectedLineAnnotation() {
+
+    if (
+        !selectedAnnotation ||
+        !isLineAnnotation(selectedAnnotation)
+    ) {
+        return;
+    }
+
+    if (
+        activeResizeHandle === "start"
+    ) {
+        selectedAnnotation.x1 = pdfX;
+        selectedAnnotation.y1 = pdfY;
+    }
+
+    else if (
+        activeResizeHandle === "end"
+    ) {
+        selectedAnnotation.x2 = pdfX;
+        selectedAnnotation.y2 = pdfY;
+    }
+}
+
 annotationCanvas.addEventListener(
     "pointermove",
     (event) => {
@@ -1824,7 +2935,16 @@ annotationCanvas.addEventListener(
             isResizing
         ) {
 
-            resizeSelectedRectangularAnnotation();
+            if (
+                selectedAnnotation &&
+                isLineAnnotation(selectedAnnotation)
+            ) {
+                resizeSelectedLineAnnotation();
+            }
+
+            else {
+                resizeSelectedRectangularAnnotation();
+            }
 
             drawAnnotations();
         }
@@ -1845,11 +2965,36 @@ annotationCanvas.addEventListener(
             selectedAnnotation
         ) {
 
-            selectedAnnotation.x =
-                pdfX - dragOffsetX;
+            if (
+                isLineAnnotation(selectedAnnotation)
+            ) {
+                const dx =
+                    pdfX - dragOffsetX;
 
-            selectedAnnotation.y =
-                pdfY - dragOffsetY;
+                const dy =
+                    pdfY - dragOffsetY;
+
+                const width =
+                    selectedAnnotation.x2 -
+                    selectedAnnotation.x1;
+
+                const height =
+                    selectedAnnotation.y2 -
+                    selectedAnnotation.y1;
+
+                selectedAnnotation.x1 = dx;
+                selectedAnnotation.y1 = dy;
+                selectedAnnotation.x2 = dx + width;
+                selectedAnnotation.y2 = dy + height;
+            }
+
+            else {
+                selectedAnnotation.x =
+                    pdfX - dragOffsetX;
+
+                selectedAnnotation.y =
+                    pdfY - dragOffsetY;
+            }
 
             drawAnnotations();
         }
@@ -1868,6 +3013,82 @@ annotationCanvas.addEventListener(
 
             previewAnnotation =
                 createRectangleAnnotation(
+                    rectangle.x,
+                    rectangle.y,
+                    rectangle.width,
+                    rectangle.height
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+
+            previewAnnotation.fillColor =
+                "#ffff00";
+
+            previewAnnotation.fillOpacity =
+                0.10;
+        }
+
+        if (
+            isDrawingCircle
+        ) {
+
+            const rectangle =
+                normalizeRectangle(
+                    circleStartPdfX,
+                    circleStartPdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            previewAnnotation =
+                createCircleAnnotation(
+                    rectangle.x,
+                    rectangle.y,
+                    rectangle.width,
+                    rectangle.height
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+
+            previewAnnotation.fillColor =
+                "#ffff00";
+
+            previewAnnotation.fillOpacity =
+                0.10;
+        }
+
+        if (
+            isDrawingLine
+        ) {
+
+            previewAnnotation =
+                createLineAnnotation(
+                    lineStartPdfX,
+                    lineStartPdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+        }
+
+        if (
+            isDrawingCloud
+        ) {
+
+            const rectangle =
+                normalizeRectangle(
+                    cloudStartPdfX,
+                    cloudStartPdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            previewAnnotation =
+                createCloudAnnotation(
                     rectangle.x,
                     rectangle.y,
                     rectangle.width,
@@ -1980,6 +3201,133 @@ annotationCanvas.addEventListener(
 
             isDrawingRectangle = true;
 
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            activeTool === "circle"
+        ) {
+
+            circleStartPdfX = pdfX;
+            circleStartPdfY = pdfY;
+
+            previewAnnotation =
+                createCircleAnnotation(
+                    pdfX,
+                    pdfY,
+                    0,
+                    0
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+
+            previewAnnotation.fillColor =
+                "#ffff00";
+
+            previewAnnotation.fillOpacity =
+                0.10;
+
+            isDrawingCircle = true;
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            activeTool === "line"
+        ) {
+
+            lineStartPdfX = pdfX;
+            lineStartPdfY = pdfY;
+
+            previewAnnotation =
+                createLineAnnotation(
+                    pdfX,
+                    pdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+
+            isDrawingLine = true;
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            activeTool === "cloud"
+        ) {
+
+            cloudStartPdfX = pdfX;
+            cloudStartPdfY = pdfY;
+
+            previewAnnotation =
+                createCloudAnnotation(
+                    pdfX,
+                    pdfY,
+                    0,
+                    0
+                );
+
+            previewAnnotation.strokeColor =
+                "#ffff00";
+
+            previewAnnotation.fillColor =
+                "#ffff00";
+
+            previewAnnotation.fillOpacity =
+                0.10;
+
+            isDrawingCloud = true;
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            activeTool.startsWith("symbol:")
+        ) {
+
+            const symbolName =
+                activeTool.replace("symbol:", "");
+
+            const annotation =
+                createSymbolAnnotation(
+                    symbolName,
+                    pdfX,
+                    pdfY
+                );
+
+            if (
+                autoLineMode &&
+                lastAutoLineSymbol &&
+                lastAutoLineSymbol.page === currentPage
+            ) {
+                annotations.push(
+                    createLineBetweenSymbols(
+                        lastAutoLineSymbol,
+                        annotation
+                    )
+                );
+            }
+
+            annotations.push(annotation);
+
+            lastAutoLineSymbol = annotation;
+            selectedAnnotation = annotation;
+            activeTool = "select";
+
+            updateToolButtons();
+            updatePropertiesPanel();
             drawAnnotations();
 
             return;
@@ -2116,12 +3464,14 @@ annotationCanvas.addEventListener(
         }
 
         dragOffsetX =
-            pdfX -
-            selectedAnnotation.x;
+            isLineAnnotation(selectedAnnotation) ?
+                pdfX - selectedAnnotation.x1 :
+                pdfX - selectedAnnotation.x;
 
         dragOffsetY =
-            pdfY -
-            selectedAnnotation.y;
+            isLineAnnotation(selectedAnnotation) ?
+                pdfY - selectedAnnotation.y1 :
+                pdfY - selectedAnnotation.y;
 
         isDragging = true;
 
@@ -2229,6 +3579,124 @@ annotationCanvas.addEventListener(
         }
 
         if (
+            isDrawingCircle
+        ) {
+
+            const rectangle =
+                normalizeRectangle(
+                    circleStartPdfX,
+                    circleStartPdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            isDrawingCircle = false;
+            previewAnnotation = null;
+
+            if (
+                rectangle.width >= 3 &&
+                rectangle.height >= 3
+            ) {
+
+                const annotation =
+                    createCircleAnnotation(
+                        rectangle.x,
+                        rectangle.y,
+                        rectangle.width,
+                        rectangle.height
+                    );
+
+                annotations.push(annotation);
+
+                selectedAnnotation = annotation;
+                activeTool = "select";
+
+                updateToolButtons();
+                updatePropertiesPanel();
+            }
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            isDrawingLine
+        ) {
+
+            isDrawingLine = false;
+            previewAnnotation = null;
+
+            if (
+                Math.abs(pdfX - lineStartPdfX) >= 3 ||
+                Math.abs(pdfY - lineStartPdfY) >= 3
+            ) {
+
+                const annotation =
+                    createLineAnnotation(
+                        lineStartPdfX,
+                        lineStartPdfY,
+                        pdfX,
+                        pdfY
+                    );
+
+                annotations.push(annotation);
+
+                selectedAnnotation = annotation;
+                activeTool = "select";
+
+                updateToolButtons();
+                updatePropertiesPanel();
+            }
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
+            isDrawingCloud
+        ) {
+
+            const rectangle =
+                normalizeRectangle(
+                    cloudStartPdfX,
+                    cloudStartPdfY,
+                    pdfX,
+                    pdfY
+                );
+
+            isDrawingCloud = false;
+            previewAnnotation = null;
+
+            if (
+                rectangle.width >= 12 &&
+                rectangle.height >= 12
+            ) {
+
+                const annotation =
+                    createCloudAnnotation(
+                        rectangle.x,
+                        rectangle.y,
+                        rectangle.width,
+                        rectangle.height
+                    );
+
+                annotations.push(annotation);
+
+                selectedAnnotation = annotation;
+                activeTool = "select";
+
+                updateToolButtons();
+                updatePropertiesPanel();
+            }
+
+            drawAnnotations();
+
+            return;
+        }
+
+        if (
             isDrawingCallout
         ) {
 
@@ -2278,7 +3746,16 @@ annotationCanvas.addEventListener(
             isResizing
         ) {
 
-            resizeSelectedRectangularAnnotation();
+            if (
+                selectedAnnotation &&
+                isLineAnnotation(selectedAnnotation)
+            ) {
+                resizeSelectedLineAnnotation();
+            }
+
+            else {
+                resizeSelectedRectangularAnnotation();
+            }
 
             isResizing = false;
             activeResizeHandle = null;
@@ -2301,6 +3778,9 @@ annotationCanvas.addEventListener(
         isDraggingLeader = false;
         activeResizeHandle = null;
         isDrawingRectangle = false;
+        isDrawingCircle = false;
+        isDrawingLine = false;
+        isDrawingCloud = false;
         isDrawingTextBox = false;
         isDrawingCallout = false;
         previewAnnotation = null;
