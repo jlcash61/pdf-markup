@@ -161,13 +161,8 @@ textarea:disabled {
 
 .tool-options {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    padding: 10px 0;
-
-    border-top: 1px solid #3a3a3a;
-    border-bottom: 1px solid #3a3a3a;
+    align-items: center;
+    gap: 10px;
 }
 
 .tool-options label {
@@ -176,6 +171,10 @@ textarea:disabled {
     gap: 8px;
 
     font-size: 0.8rem;
+}
+
+.toolbar-options {
+    padding: 0 8px;
 }
 
 .properties-panel {
@@ -220,6 +219,17 @@ textarea:disabled {
 
     resize: vertical;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+.rotation-control {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+}
+
+.icon-action-btn {
+    min-width: 38px;
+    padding: 5px 8px;
 }
 
 /* **************************************************
@@ -330,12 +340,6 @@ textarea:disabled {
 
     .tool-menu {
         grid-column: auto;
-    }
-
-    .tool-options {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(90px, 1fr));
-        align-items: center;
     }
 
     .properties-panel {

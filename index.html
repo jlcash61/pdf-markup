@@ -60,6 +60,23 @@
 
         <button id="actualSizeBtn">100%</button>
 
+        <div class="tool-options toolbar-options">
+            <label>
+                <input type="checkbox" id="showGridInput">
+                Grid
+            </label>
+
+            <label>
+                <input type="checkbox" id="snapGridInput">
+                Snap
+            </label>
+
+            <label>
+                <input type="checkbox" id="autoLineInput">
+                Auto Line
+            </label>
+        </div>
+
         <div class="toolbar-title">
             PDF Markup Tool
         </div>
@@ -157,23 +174,6 @@
                 Delete
             </button>
 
-            <div class="tool-options">
-                <label>
-                    <input type="checkbox" id="showGridInput">
-                    Grid
-                </label>
-
-                <label>
-                    <input type="checkbox" id="snapGridInput">
-                    Snap
-                </label>
-
-                <label>
-                    <input type="checkbox" id="autoLineInput">
-                    Auto Line
-                </label>
-            </div>
-
             <div class="properties-panel">
                 <div class="properties-title">
                     Properties
@@ -226,7 +226,10 @@
 
                 <label>
                     Rotation
-                    <input type="number" id="rotationInput" min="0" max="359" value="0">
+                    <span class="rotation-control">
+                        <input type="number" id="rotationInput" min="0" max="359" value="0">
+                        <button id="rotate90Btn" type="button" class="icon-action-btn" aria-label="Rotate 90 degrees">90</button>
+                    </span>
                 </label>
             </div>
         </aside>

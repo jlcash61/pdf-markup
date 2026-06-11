@@ -69,6 +69,7 @@ const autoLineInput = document.getElementById("autoLineInput");
 const symbolLabelInput = document.getElementById("symbolLabelInput");
 const symbolAddressInput = document.getElementById("symbolAddressInput");
 const rotationInput = document.getElementById("rotationInput");
+const rotate90Btn = document.getElementById("rotate90Btn");
 
 const viewer = document.getElementById("viewer");
 const canvasContainer = document.getElementById("canvasContainer");
@@ -1023,6 +1024,7 @@ function updatePropertiesPanel() {
         symbolLabelInput.disabled = true;
         symbolAddressInput.disabled = true;
         rotationInput.disabled = true;
+        rotate90Btn.disabled = true;
 
         return;
     }
@@ -1060,6 +1062,7 @@ function updatePropertiesPanel() {
     symbolLabelInput.disabled = !hasSymbolSelection;
     symbolAddressInput.disabled = !hasSymbolSelection;
     rotationInput.disabled = !hasSymbolSelection;
+    rotate90Btn.disabled = !hasSymbolSelection;
 
     if (
         hasSelection
@@ -1252,6 +1255,17 @@ fontSizeInput.addEventListener("input", applyPropertiesToSelection);
 symbolLabelInput.addEventListener("input", applyPropertiesToSelection);
 symbolAddressInput.addEventListener("input", applyPropertiesToSelection);
 rotationInput.addEventListener("input", applyPropertiesToSelection);
+
+rotate90Btn.addEventListener("click", () => {
+
+    const currentValue =
+        Number(rotationInput.value) || 0;
+
+    rotationInput.value =
+        (Math.round(currentValue / 90) * 90 + 90) % 360;
+
+    applyPropertiesToSelection();
+});
 
 showGridInput.addEventListener("change", () => {
     showGrid = showGridInput.checked;
@@ -2169,16 +2183,16 @@ function drawNotificationWedge(screenWidth, screenHeight, appliance) {
 
     annotationCtx.moveTo(
         wedgeOffset,
+        0
+    );
+
+    annotationCtx.lineTo(
+        wedgeOffset + boxSize * 0.42,
         -boxSize * 0.28
     );
 
     annotationCtx.lineTo(
         wedgeOffset + boxSize * 0.42,
-        0
-    );
-
-    annotationCtx.lineTo(
-        wedgeOffset,
         boxSize * 0.28
     );
 
@@ -2187,17 +2201,17 @@ function drawNotificationWedge(screenWidth, screenHeight, appliance) {
     ) {
         annotationCtx.moveTo(
             wedgeOffset + boxSize * 0.12,
-            -boxSize * 0.18
-        );
-
-        annotationCtx.lineTo(
-            wedgeOffset + boxSize * 0.34,
             0
         );
 
         annotationCtx.lineTo(
-            wedgeOffset + boxSize * 0.12,
-            boxSize * 0.18
+            wedgeOffset + boxSize * 0.34,
+            -boxSize * 0.16
+        );
+
+        annotationCtx.lineTo(
+            wedgeOffset + boxSize * 0.34,
+            boxSize * 0.16
         );
     }
 }
@@ -2960,11 +2974,11 @@ function createSymbolAnnotation(symbol, x, y) {
         y: y - symbolHeight / 2,
         width: symbolWidth,
         height: symbolHeight,
-        strokeColor: currentStrokeColor,
+        strokeColor: "#111111",
         fillColor: "#ffffff",
         fillOpacity: 0.92,
         lineWidth: currentLineWidth,
-        textColor: currentTextColor,
+        textColor: "#ff0000",
         fontSize: 16,
         label: currentSymbolLabel,
         address: currentSymbolAddress,
