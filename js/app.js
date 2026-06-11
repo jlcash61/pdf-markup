@@ -189,7 +189,26 @@ const symbolLibrary = {
     horn: {
         label: "Horn",
         text: "H",
-        shape: "square"
+        shape: "notification",
+        appliance: "horn"
+    },
+    strobe: {
+        label: "Strobe",
+        text: "",
+        shape: "notification",
+        appliance: "strobe"
+    },
+    hornStrobe: {
+        label: "Horn/Strobe",
+        text: "",
+        shape: "notification",
+        appliance: "hornStrobe"
+    },
+    speakerStrobe: {
+        label: "Speaker/Strobe",
+        text: "SPK",
+        shape: "notification",
+        appliance: "speakerStrobe"
     },
     iam: {
         label: "IAM",
@@ -2082,6 +2101,107 @@ function drawCloudAnnotation(annotation) {
     }
 }
 
+function drawNotificationBox(screenWidth, screenHeight, includeStrobe) {
+
+    const boxSize =
+        Math.min(screenWidth * 0.72, screenHeight);
+
+    annotationCtx.rect(
+        -boxSize / 2,
+        -boxSize / 2,
+        boxSize,
+        boxSize
+    );
+
+    if (
+        includeStrobe
+    ) {
+        annotationCtx.moveTo(
+            -boxSize / 2,
+            -boxSize / 2
+        );
+
+        annotationCtx.lineTo(
+            boxSize / 2,
+            boxSize / 2
+        );
+
+        annotationCtx.moveTo(
+            boxSize / 2,
+            -boxSize / 2
+        );
+
+        annotationCtx.lineTo(
+            -boxSize / 2,
+            boxSize / 2
+        );
+
+        annotationCtx.moveTo(
+            boxSize * 0.14,
+            0
+        );
+
+        annotationCtx.arc(
+            0,
+            0,
+            boxSize * 0.14,
+            0,
+            Math.PI * 2
+        );
+    }
+}
+
+function drawNotificationWedge(screenWidth, screenHeight, appliance) {
+
+    if (
+        appliance !== "horn" &&
+        appliance !== "hornStrobe" &&
+        appliance !== "speakerStrobe"
+    ) {
+        return;
+    }
+
+    const boxSize =
+        Math.min(screenWidth * 0.72, screenHeight);
+
+    const wedgeOffset =
+        boxSize / 2;
+
+    annotationCtx.moveTo(
+        wedgeOffset,
+        -boxSize * 0.28
+    );
+
+    annotationCtx.lineTo(
+        wedgeOffset + boxSize * 0.42,
+        0
+    );
+
+    annotationCtx.lineTo(
+        wedgeOffset,
+        boxSize * 0.28
+    );
+
+    if (
+        appliance === "speakerStrobe"
+    ) {
+        annotationCtx.moveTo(
+            wedgeOffset + boxSize * 0.12,
+            -boxSize * 0.18
+        );
+
+        annotationCtx.lineTo(
+            wedgeOffset + boxSize * 0.34,
+            0
+        );
+
+        annotationCtx.lineTo(
+            wedgeOffset + boxSize * 0.12,
+            boxSize * 0.18
+        );
+    }
+}
+
 function drawSymbolAnnotation(annotation) {
 
     const screenX =
@@ -2137,6 +2257,22 @@ function drawSymbolAnnotation(annotation) {
             -screenHeight / 2,
             screenWidth,
             screenHeight
+        );
+    }
+
+    else if (
+        symbol.shape === "notification"
+    ) {
+        drawNotificationBox(
+            screenWidth,
+            screenHeight,
+            symbol.appliance !== "horn"
+        );
+
+        drawNotificationWedge(
+            screenWidth,
+            screenHeight,
+            symbol.appliance
         );
     }
 
@@ -2199,11 +2335,15 @@ function drawSymbolAnnotation(annotation) {
     annotationCtx.textBaseline =
         "middle";
 
-    annotationCtx.fillText(
-        symbol.text,
-        0,
-        0
-    );
+    if (
+        symbol.text
+    ) {
+        annotationCtx.fillText(
+            symbol.text,
+            0,
+            0
+        );
+    }
 
     annotationCtx.restore();
 
@@ -2801,14 +2941,25 @@ function createCloudAnnotation(x, y, width, height) {
 
 function createSymbolAnnotation(symbol, x, y) {
 
+    const symbolDefinition =
+        symbolLibrary[symbol] || {};
+
+    const symbolWidth =
+        symbolDefinition.shape === "notification" ?
+            defaultSymbolSize * 1.42 :
+            defaultSymbolSize;
+
+    const symbolHeight =
+        defaultSymbolSize;
+
     return {
         type: "symbol",
         page: currentPage,
         symbol,
-        x: x - defaultSymbolSize / 2,
-        y: y - defaultSymbolSize / 2,
-        width: defaultSymbolSize,
-        height: defaultSymbolSize,
+        x: x - symbolWidth / 2,
+        y: y - symbolHeight / 2,
+        width: symbolWidth,
+        height: symbolHeight,
         strokeColor: currentStrokeColor,
         fillColor: "#ffffff",
         fillOpacity: 0.92,
