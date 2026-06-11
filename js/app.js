@@ -28,6 +28,9 @@ const openProjectBtn = document.getElementById("openProjectBtn");
 const projectFileInput = document.getElementById("projectFileInput");
 const saveProjectBtn = document.getElementById("saveProjectBtn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
+const fileMenuBtn = document.getElementById("fileMenuBtn");
+const fileModal = document.getElementById("fileModal");
+const closeFileModalBtn = document.getElementById("closeFileModalBtn");
 const documentTitleInput = document.getElementById("documentTitleInput");
 const statusBar = document.getElementById("statusBar");
 
@@ -70,6 +73,9 @@ const symbolLabelInput = document.getElementById("symbolLabelInput");
 const symbolAddressInput = document.getElementById("symbolAddressInput");
 const rotationInput = document.getElementById("rotationInput");
 const rotate90Btn = document.getElementById("rotate90Btn");
+const propertiesPanel = document.querySelector(".properties-panel");
+const propertiesToggleBtn = document.getElementById("propertiesToggleBtn");
+const resetDefaultsBtn = document.getElementById("resetDefaultsBtn");
 
 const viewer = document.getElementById("viewer");
 const canvasContainer = document.getElementById("canvasContainer");
@@ -79,6 +85,37 @@ const ctx = canvas.getContext("2d");
 
 const annotationCanvas = document.getElementById("annotationCanvas");
 const annotationCtx = annotationCanvas.getContext("2d");
+
+const preferencesStorageKey = "markup.preferences.v1";
+
+const factoryDefaults = {
+    markup: {
+        strokeColor: "#ff0000",
+        fillColor: "#ff0000",
+        fillOpacity: 0.08,
+        lineWidth: 2
+    },
+    text: {
+        textColor: "#111111",
+        fontSize: 16,
+        textContent: "Text"
+    },
+    symbol: {
+        label: "",
+        address: "",
+        rotation: 0,
+        strokeColor: "#111111",
+        fillColor: "#ffffff",
+        fillOpacity: 0.92,
+        textColor: "#ff0000",
+        fontSize: 16
+    },
+    tools: {
+        showGrid: false,
+        snapToGrid: false,
+        autoLineMode: false
+    }
+};
 
 /* **************************************************
    APPLICATION STATE
@@ -104,20 +141,20 @@ let exporting = false;
 
 let activeTool = "select";
 
-let currentStrokeColor = "#00ff66";
-let currentFillColor = "#00ff66";
-let currentFillOpacity = 0.12;
-let currentLineWidth = 2;
-let currentTextColor = "#111111";
-let currentFontSize = 16;
-let currentTextContent = "Text";
-let currentSymbolLabel = "";
-let currentSymbolAddress = "";
-let currentRotation = 0;
+let currentStrokeColor = factoryDefaults.markup.strokeColor;
+let currentFillColor = factoryDefaults.markup.fillColor;
+let currentFillOpacity = factoryDefaults.markup.fillOpacity;
+let currentLineWidth = factoryDefaults.markup.lineWidth;
+let currentTextColor = factoryDefaults.text.textColor;
+let currentFontSize = factoryDefaults.text.fontSize;
+let currentTextContent = factoryDefaults.text.textContent;
+let currentSymbolLabel = factoryDefaults.symbol.label;
+let currentSymbolAddress = factoryDefaults.symbol.address;
+let currentRotation = factoryDefaults.symbol.rotation;
 
-let showGrid = false;
-let snapToGrid = false;
-let autoLineMode = false;
+let showGrid = factoryDefaults.tools.showGrid;
+let snapToGrid = factoryDefaults.tools.snapToGrid;
+let autoLineMode = factoryDefaults.tools.autoLineMode;
 let lastAutoLineSymbol = null;
 
 let annotations = [];
@@ -235,6 +272,7 @@ const symbolLibrary = {
    They become available after a PDF is loaded.
    ************************************************** */
 
+loadSavedPreferences();
 initializeUi();
 updateToolButtons();
 updatePropertiesPanel();
@@ -242,6 +280,154 @@ updatePropertiesPanel();
 function hasDocument() {
 
     return documentType !== "none";
+}
+
+function createDefaultsSnapshot() {
+
+    return {
+        currentStrokeColor,
+        currentFillColor,
+        currentFillOpacity,
+        currentLineWidth,
+        currentTextColor,
+        currentFontSize,
+        currentTextContent,
+        currentSymbolLabel,
+        currentSymbolAddress,
+        currentRotation,
+        showGrid,
+        snapToGrid,
+        autoLineMode
+    };
+}
+
+function applyDefaults(defaults) {
+
+    if (
+        !defaults
+    ) {
+        return;
+    }
+
+    currentStrokeColor =
+        defaults.currentStrokeColor ?? currentStrokeColor;
+
+    currentFillColor =
+        defaults.currentFillColor ?? currentFillColor;
+
+    currentFillOpacity =
+        defaults.currentFillOpacity ?? currentFillOpacity;
+
+    currentLineWidth =
+        defaults.currentLineWidth ?? currentLineWidth;
+
+    currentTextColor =
+        defaults.currentTextColor ?? currentTextColor;
+
+    currentFontSize =
+        defaults.currentFontSize ?? currentFontSize;
+
+    currentTextContent =
+        defaults.currentTextContent ?? currentTextContent;
+
+    currentSymbolLabel =
+        defaults.currentSymbolLabel ?? currentSymbolLabel;
+
+    currentSymbolAddress =
+        defaults.currentSymbolAddress ?? currentSymbolAddress;
+
+    currentRotation =
+        defaults.currentRotation ?? currentRotation;
+
+    showGrid =
+        defaults.showGrid ?? showGrid;
+
+    snapToGrid =
+        defaults.snapToGrid ?? snapToGrid;
+
+    autoLineMode =
+        defaults.autoLineMode ?? autoLineMode;
+
+    showGridInput.checked =
+        showGrid;
+
+    snapGridInput.checked =
+        snapToGrid;
+
+    autoLineInput.checked =
+        autoLineMode;
+}
+
+function getFactoryDefaultsSnapshot() {
+
+    return {
+        currentStrokeColor: factoryDefaults.markup.strokeColor,
+        currentFillColor: factoryDefaults.markup.fillColor,
+        currentFillOpacity: factoryDefaults.markup.fillOpacity,
+        currentLineWidth: factoryDefaults.markup.lineWidth,
+        currentTextColor: factoryDefaults.text.textColor,
+        currentFontSize: factoryDefaults.text.fontSize,
+        currentTextContent: factoryDefaults.text.textContent,
+        currentSymbolLabel: factoryDefaults.symbol.label,
+        currentSymbolAddress: factoryDefaults.symbol.address,
+        currentRotation: factoryDefaults.symbol.rotation,
+        showGrid: factoryDefaults.tools.showGrid,
+        snapToGrid: factoryDefaults.tools.snapToGrid,
+        autoLineMode: factoryDefaults.tools.autoLineMode
+    };
+}
+
+function loadSavedPreferences() {
+
+    try {
+        const savedPreferences =
+            localStorage.getItem(preferencesStorageKey);
+
+        if (
+            savedPreferences
+        ) {
+            applyDefaults(
+                JSON.parse(savedPreferences)
+            );
+        }
+    }
+
+    catch {
+        localStorage.removeItem(preferencesStorageKey);
+    }
+}
+
+function savePreferences() {
+
+    localStorage.setItem(
+        preferencesStorageKey,
+        JSON.stringify(createDefaultsSnapshot())
+    );
+}
+
+function resetDefaults() {
+
+    applyDefaults(
+        getFactoryDefaultsSnapshot()
+    );
+
+    localStorage.removeItem(preferencesStorageKey);
+    selectedAnnotation = null;
+    updatePropertiesPanel();
+    drawAnnotations();
+}
+
+function setPropertiesCollapsed(isCollapsed) {
+
+    propertiesPanel.classList.toggle(
+        "collapsed",
+        isCollapsed
+    );
+
+    propertiesToggleBtn.setAttribute(
+        "aria-expanded",
+        String(!isCollapsed)
+    );
 }
 
 function initializeUi() {
@@ -270,7 +456,24 @@ function initializeUi() {
     symbolLabelInput.disabled = true;
     symbolAddressInput.disabled = true;
     rotationInput.disabled = true;
+    rotate90Btn.disabled = true;
+
+    showGridInput.checked =
+        showGrid;
+
+    snapGridInput.checked =
+        snapToGrid;
+
+    autoLineInput.checked =
+        autoLineMode;
 }
+
+propertiesToggleBtn.addEventListener("click", () => {
+
+    setPropertiesCollapsed(
+        !propertiesPanel.classList.contains("collapsed")
+    );
+});
 
 function enablePdfControls() {
 
@@ -371,11 +574,49 @@ function downloadBlob(blob, fileName) {
    document object used by renderPage().
    ************************************************** */
 
+function openFileModal() {
+
+    fileModal.hidden = false;
+    closeFileModalBtn.focus();
+}
+
+function closeFileModal() {
+
+    fileModal.hidden = true;
+    fileMenuBtn.focus();
+}
+
+fileMenuBtn.addEventListener("click", openFileModal);
+
+closeFileModalBtn.addEventListener("click", closeFileModal);
+
+fileModal.addEventListener("click", event => {
+
+    if (
+        event.target === fileModal
+    ) {
+        closeFileModal();
+    }
+});
+
+document.addEventListener("keydown", event => {
+
+    if (
+        event.key === "Escape" &&
+        !fileModal.hidden
+    ) {
+        closeFileModal();
+    }
+});
+
 openBtn.addEventListener("click", () => {
+    closeFileModal();
     fileInput.click();
 });
 
 newBlankBtn.addEventListener("click", async () => {
+
+    closeFileModal();
 
     pdf = null;
     documentType = "blank";
@@ -468,78 +709,13 @@ function createProjectData() {
         currentPage,
         totalPages,
         zoomMode,
-        defaults: {
-            currentStrokeColor,
-            currentFillColor,
-            currentFillOpacity,
-            currentLineWidth,
-            currentTextColor,
-            currentFontSize,
-            currentTextContent,
-            currentSymbolLabel,
-            currentSymbolAddress,
-            currentRotation,
-            showGrid,
-            snapToGrid,
-            autoLineMode
-        },
+        defaults: createDefaultsSnapshot(),
         annotations
     };
 }
 
 function restoreDefaults(defaults) {
-
-    if (!defaults) {
-        return;
-    }
-
-    currentStrokeColor =
-        defaults.currentStrokeColor || currentStrokeColor;
-
-    currentFillColor =
-        defaults.currentFillColor || currentFillColor;
-
-    currentFillOpacity =
-        defaults.currentFillOpacity ?? currentFillOpacity;
-
-    currentLineWidth =
-        defaults.currentLineWidth ?? currentLineWidth;
-
-    currentTextColor =
-        defaults.currentTextColor || currentTextColor;
-
-    currentFontSize =
-        defaults.currentFontSize ?? currentFontSize;
-
-    currentTextContent =
-        defaults.currentTextContent || currentTextContent;
-
-    currentSymbolLabel =
-        defaults.currentSymbolLabel ?? currentSymbolLabel;
-
-    currentSymbolAddress =
-        defaults.currentSymbolAddress ?? currentSymbolAddress;
-
-    currentRotation =
-        defaults.currentRotation ?? currentRotation;
-
-    showGrid =
-        defaults.showGrid ?? showGrid;
-
-    snapToGrid =
-        defaults.snapToGrid ?? snapToGrid;
-
-    autoLineMode =
-        defaults.autoLineMode ?? autoLineMode;
-
-    showGridInput.checked =
-        showGrid;
-
-    snapGridInput.checked =
-        snapToGrid;
-
-    autoLineInput.checked =
-        autoLineMode;
+    applyDefaults(defaults);
 }
 
 saveProjectBtn.addEventListener("click", () => {
@@ -549,6 +725,8 @@ saveProjectBtn.addEventListener("click", () => {
     ) {
         return;
     }
+
+    closeFileModal();
 
     const projectData =
         createProjectData();
@@ -571,6 +749,7 @@ saveProjectBtn.addEventListener("click", () => {
 });
 
 openProjectBtn.addEventListener("click", () => {
+    closeFileModal();
     projectFileInput.click();
 });
 
@@ -707,6 +886,8 @@ exportPdfBtn.addEventListener("click", async () => {
     ) {
         return;
     }
+
+    closeFileModal();
 
     if (
         !window.jspdf ||
@@ -1059,9 +1240,9 @@ function updatePropertiesPanel() {
     textContentInput.disabled = !hasTextSelection;
     textColorInput.disabled = !hasTextSelection;
     fontSizeInput.disabled = !hasTextSelection;
-    symbolLabelInput.disabled = !hasSymbolSelection;
-    symbolAddressInput.disabled = !hasSymbolSelection;
-    rotationInput.disabled = !hasSymbolSelection;
+    symbolLabelInput.disabled = Boolean(selectedAnnotation) && !hasSymbolSelection;
+    symbolAddressInput.disabled = Boolean(selectedAnnotation) && !hasSymbolSelection;
+    rotationInput.disabled = Boolean(selectedAnnotation) && !hasSymbolSelection;
     rotate90Btn.disabled = !hasSymbolSelection;
 
     if (
@@ -1243,6 +1424,10 @@ function applyPropertiesToSelection() {
 
         drawAnnotations();
     }
+
+    else {
+        savePreferences();
+    }
 }
 
 strokeColorInput.addEventListener("input", applyPropertiesToSelection);
@@ -1269,16 +1454,24 @@ rotate90Btn.addEventListener("click", () => {
 
 showGridInput.addEventListener("change", () => {
     showGrid = showGridInput.checked;
+    savePreferences();
     drawAnnotations();
 });
 
 snapGridInput.addEventListener("change", () => {
     snapToGrid = snapGridInput.checked;
+    savePreferences();
 });
 
 autoLineInput.addEventListener("change", () => {
     autoLineMode = autoLineInput.checked;
     lastAutoLineSymbol = null;
+    savePreferences();
+});
+
+resetDefaultsBtn.addEventListener("click", () => {
+    closeFileModal();
+    resetDefaults();
 });
 
 /* **************************************************
@@ -2196,6 +2389,8 @@ function drawNotificationWedge(screenWidth, screenHeight, appliance) {
         boxSize * 0.28
     );
 
+    annotationCtx.closePath();
+
     if (
         appliance === "speakerStrobe"
     ) {
@@ -2213,6 +2408,8 @@ function drawNotificationWedge(screenWidth, screenHeight, appliance) {
             wedgeOffset + boxSize * 0.34,
             boxSize * 0.16
         );
+
+        annotationCtx.closePath();
     }
 }
 
@@ -2974,12 +3171,12 @@ function createSymbolAnnotation(symbol, x, y) {
         y: y - symbolHeight / 2,
         width: symbolWidth,
         height: symbolHeight,
-        strokeColor: "#111111",
-        fillColor: "#ffffff",
-        fillOpacity: 0.92,
+        strokeColor: factoryDefaults.symbol.strokeColor,
+        fillColor: factoryDefaults.symbol.fillColor,
+        fillOpacity: factoryDefaults.symbol.fillOpacity,
         lineWidth: currentLineWidth,
-        textColor: "#ff0000",
-        fontSize: 16,
+        textColor: factoryDefaults.symbol.textColor,
+        fontSize: factoryDefaults.symbol.fontSize,
         label: currentSymbolLabel,
         address: currentSymbolAddress,
         rotation: currentRotation

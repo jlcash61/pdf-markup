@@ -1,5 +1,5 @@
-const CACHE_NAME = "markup-app-v5";
-const RUNTIME_CACHE_NAME = "markup-runtime-v5";
+const CACHE_NAME = "markup-app-v7";
+const RUNTIME_CACHE_NAME = "markup-runtime-v7";
 
 const APP_SHELL = [
     "./",

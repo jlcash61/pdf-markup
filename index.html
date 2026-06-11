@@ -24,19 +24,11 @@
 
     <header class="toolbar">
 
-        <button id="openPdfBtn">Open PDF</button>
-
-        <button id="newBlankBtn">New Blank</button>
+        <button id="fileMenuBtn" type="button">File</button>
 
         <input type="file" id="pdfFileInput" accept=".pdf" hidden>
 
-        <button id="openProjectBtn">Open Project</button>
-
         <input type="file" id="projectFileInput" accept=".markup,.json" hidden>
-
-        <button id="saveProjectBtn">Save Project</button>
-
-        <button id="exportPdfBtn">Export PDF</button>
 
         <input type="text" id="documentTitleInput" class="document-title-input" value="Untitled" aria-label="Document title" disabled>
 
@@ -175,62 +167,64 @@
             </button>
 
             <div class="properties-panel">
-                <div class="properties-title">
+                <button id="propertiesToggleBtn" class="properties-toggle" type="button" aria-expanded="true" aria-controls="propertiesBody">
                     Properties
+                </button>
+
+                <div id="propertiesBody" class="properties-body">
+                    <label>
+                        Stroke
+                        <input type="color" id="strokeColorInput" value="#00ff66">
+                    </label>
+
+                    <label>
+                        Fill
+                        <input type="color" id="fillColorInput" value="#00ff66">
+                    </label>
+
+                    <label>
+                        Fill Opacity
+                        <input type="range" id="fillOpacityInput" min="0" max="1" step="0.05" value="0.12">
+                    </label>
+
+                    <label>
+                        Line Width
+                        <input type="number" id="lineWidthInput" min="1" max="12" value="2">
+                    </label>
+
+                    <label>
+                        Text
+                        <textarea id="textContentInput" rows="4"></textarea>
+                    </label>
+
+                    <label>
+                        Text Color
+                        <input type="color" id="textColorInput" value="#111111">
+                    </label>
+
+                    <label>
+                        Font Size
+                        <input type="number" id="fontSizeInput" min="6" max="72" value="16">
+                    </label>
+
+                    <label>
+                        Symbol Label
+                        <input type="text" id="symbolLabelInput">
+                    </label>
+
+                    <label>
+                        Address
+                        <input type="text" id="symbolAddressInput">
+                    </label>
+
+                    <label>
+                        Rotation
+                        <span class="rotation-control">
+                            <input type="number" id="rotationInput" min="0" max="359" value="0">
+                            <button id="rotate90Btn" type="button" class="icon-action-btn" aria-label="Rotate 90 degrees">90</button>
+                        </span>
+                    </label>
                 </div>
-
-                <label>
-                    Stroke
-                    <input type="color" id="strokeColorInput" value="#00ff66">
-                </label>
-
-                <label>
-                    Fill
-                    <input type="color" id="fillColorInput" value="#00ff66">
-                </label>
-
-                <label>
-                    Fill Opacity
-                    <input type="range" id="fillOpacityInput" min="0" max="1" step="0.05" value="0.12">
-                </label>
-
-                <label>
-                    Line Width
-                    <input type="number" id="lineWidthInput" min="1" max="12" value="2">
-                </label>
-
-                <label>
-                    Text
-                    <textarea id="textContentInput" rows="4"></textarea>
-                </label>
-
-                <label>
-                    Text Color
-                    <input type="color" id="textColorInput" value="#111111">
-                </label>
-
-                <label>
-                    Font Size
-                    <input type="number" id="fontSizeInput" min="6" max="72" value="16">
-                </label>
-
-                <label>
-                    Symbol Label
-                    <input type="text" id="symbolLabelInput">
-                </label>
-
-                <label>
-                    Address
-                    <input type="text" id="symbolAddressInput">
-                </label>
-
-                <label>
-                    Rotation
-                    <span class="rotation-control">
-                        <input type="number" id="rotationInput" min="0" max="359" value="0">
-                        <button id="rotate90Btn" type="button" class="icon-action-btn" aria-label="Rotate 90 degrees">90</button>
-                    </span>
-                </label>
             </div>
         </aside>
 
@@ -251,6 +245,24 @@
     <footer id="statusBar" class="status-bar">
         Ready
     </footer>
+
+    <div id="fileModal" class="modal-backdrop" hidden>
+        <section class="file-modal" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+            <div class="modal-header">
+                <h2 id="fileModalTitle">File</h2>
+                <button id="closeFileModalBtn" type="button" class="modal-close-btn" aria-label="Close file menu">x</button>
+            </div>
+
+            <div class="file-actions">
+                <button id="newBlankBtn" type="button">New Blank</button>
+                <button id="openPdfBtn" type="button">Open PDF</button>
+                <button id="openProjectBtn" type="button">Open Project</button>
+                <button id="saveProjectBtn" type="button">Save Project</button>
+                <button id="exportPdfBtn" type="button">Export PDF</button>
+                <button id="resetDefaultsBtn" type="button">Reset Defaults</button>
+            </div>
+        </section>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
     </script>
